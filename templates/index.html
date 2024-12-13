@@ -1,0 +1,196 @@
+{% extends "layouts/base.html" %} {% block title %}Invoice Processing - Upload{%
+endblock %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h4 class="mb-0">העלאת חשבונית</h4>
+      </div>
+      <div class="card-body">
+        <form id="uploadForm" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="file" class="form-label"
+              >בחר קובץ חשבונית (PDF, PNG, JPG)</label
+            >
+            <input
+              type="file"
+              class="form-control"
+              id="file"
+              name="file"
+              accept=".pdf,.png,.jpg,.jpeg"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary">העלה ועבד</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="invoiceResult" style="display: none">
+      <div class="card">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h4 class="mb-0">תוצאות עיבוד</h4>
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            onclick="window.print()"
+          >
+            <i class="bi bi-printer"></i> הדפס
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="companyDetails" class="mb-4">
+            <h5 class="editable company-name"></h5>
+            <p class="editable company-address mb-1"></p>
+            <p class="editable company-tax-id mb-0"></p>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-6">
+              <p class="mb-1">
+                מספר חשבונית: <span class="editable invoice-number"></span>
+              </p>
+              <p class="mb-0">
+                תאריך: <span class="editable invoice-date"></span>
+              </p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">תיאור</th>
+                  <th scope="col" class="text-center">כמות</th>
+                  <th scope="col" class="text-center">מחיר יחידה</th>
+                  <th scope="col" class="text-center">סה"כ</th>
+                </tr>
+              </thead>
+              <tbody id="lineItems">
+                <!-- Line items will be inserted here -->
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" class="text-end">סה"כ לפני מע"מ:</td>
+                  <td class="text-center">₪<span id="subtotal">0.00</span></td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="text-end">מע"מ (17%):</td>
+                  <td class="text-center">₪<span id="tax">0.00</span></td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="text-end">
+                    <strong>סה"כ כולל מע"מ:</strong>
+                  </td>
+                  <td class="text-center">
+                    <strong>₪<span id="total">0.00</span></strong>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document
+    .getElementById("uploadForm")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault();
+      showLoading();
+
+      const formData = new FormData(this);
+      try {
+        const response = await fetch("/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.status === "success") {
+          displayInvoice(data.invoice_data);
+        } else {
+          alert(data.error || "Failed to process invoice");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Error processing invoice: " + error.message);
+      } finally {
+        hideLoading();
+      }
+    });
+
+  function displayInvoice(data) {
+    // Show the invoice result section
+    document.getElementById("invoiceResult").style.display = "block";
+
+    // Update company details
+    document.querySelector(".company-name").textContent =
+      data.company_details.name;
+    document.querySelector(".company-address").textContent =
+      data.company_details.address;
+    document.querySelector(".company-tax-id").textContent =
+      data.company_details.tax_id;
+
+    // Update invoice details
+    document.querySelector(".invoice-number").textContent = data.invoice_number;
+    document.querySelector(".invoice-date").textContent = data.date;
+
+    // Clear existing line items
+    const lineItemsContainer = document.getElementById("lineItems");
+    lineItemsContainer.innerHTML = "";
+
+    // Add line items
+    data.line_items.forEach((item) => {
+      const row = document.createElement("tr");
+      row.className = "line-item";
+      row.innerHTML = `
+            <td class="editable description">${item.description}</td>
+            <td class="text-center"><span class="editable quantity">${item.quantity}</span></td>
+            <td class="text-center"><span class="editable unit-price">${item.unit_price}</span></td>
+            <td class="text-center"><span class="total">${item.total}</span></td>
+        `;
+      lineItemsContainer.appendChild(row);
+    });
+
+    // Update totals
+    document.getElementById("subtotal").textContent = data.totals.subtotal;
+    document.getElementById("tax").textContent = data.totals.tax;
+    document.getElementById("total").textContent = data.totals.total;
+
+    // Make new elements editable
+    const editables = document.querySelectorAll(".editable");
+    editables.forEach((element) => {
+      element.addEventListener("click", function () {
+        this.contentEditable = true;
+        this.focus();
+      });
+
+      element.addEventListener("blur", function () {
+        this.contentEditable = false;
+        if (
+          this.classList.contains("quantity") ||
+          this.classList.contains("unit-price")
+        ) {
+          updateCalculations();
+        }
+      });
+
+      element.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.blur();
+        }
+      });
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Invoice Processing{% endblock %}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      .loading {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        z-index: 9999;
+      }
+      .loading-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+      }
+      .spinner-border {
+        width: 3rem;
+        height: 3rem;
+      }
+      .editable:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+      }
+      .editable:focus {
+        background-color: #fff;
+        outline: none;
+        border: 1px solid #ced4da;
+        padding: 0.25rem;
+      }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <div class="loading">
+      <div class="loading-content">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">מעבד את החשבונית...</p>
+      </div>
+    </div>
+
+    <div class="container py-4">{% block content %}{% endblock %}</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      function showLoading() {
+        document.querySelector(".loading").style.display = "block";
+      }
+
+      function hideLoading() {
+        document.querySelector(".loading").style.display = "none";
+      }
+
+      function updateCalculations() {
+        const lineItems = document.querySelectorAll(".line-item");
+        let subtotal = 0;
+
+        lineItems.forEach((item) => {
+          const quantity = parseFloat(
+            item.querySelector(".quantity").textContent
+          );
+          const unitPrice = parseFloat(
+            item.querySelector(".unit-price").textContent
+          );
+          const total = quantity * unitPrice;
+
+          item.querySelector(".total").textContent = total.toFixed(2);
+          subtotal += total;
+        });
+
+        const tax = subtotal * 0.17;
+        const finalTotal = subtotal + tax;
+
+        document.getElementById("subtotal").textContent = subtotal.toFixed(2);
+        document.getElementById("tax").textContent = tax.toFixed(2);
+        document.getElementById("total").textContent = finalTotal.toFixed(2);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const editables = document.querySelectorAll(".editable");
+
+        editables.forEach((element) => {
+          element.addEventListener("click", function () {
+            this.contentEditable = true;
+            this.focus();
+          });
+
+          element.addEventListener("blur", function () {
+            this.contentEditable = false;
+            if (
+              this.classList.contains("quantity") ||
+              this.classList.contains("unit-price")
+            ) {
+              updateCalculations();
+            }
+          });
+
+          element.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              this.blur();
+            }
+          });
+        });
+      });
+    </script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
