@@ -1,0 +1,143 @@
+# Invoice Processing Application with Gemini Vision AI
+
+## Project Structure
+```
+.
+├── app.py                 # Main Flask application
+├── requirements.txt       # Python dependencies
+├── templates/            # HTML templates
+│   └── index.html       # Main UI template
+├── uploads/             # Temporary folder for uploads
+└── .env                 # Environment variables
+```
+
+## Dependencies
+Required Python packages and versions:
+```
+flask>=3.0.0
+python-dotenv>=1.0.0
+pdf2image>=1.16.3
+Pillow>=10.0.0
+python-docx>=0.8.11
+markdown>=3.5.2
+google-generativeai>=0.3.2
+```
+
+## Environment Setup
+Required environment variables in .env:
+```
+GOOGLE_API_KEY=your-gemini-api-key
+```
+
+## Process Flow
+1. File Upload
+   - Accepts PDF, DOCX, PNG, JPG, JPEG
+   - Max file size: 16MB
+   - Files stored temporarily in uploads/
+
+2. Image Processing
+   - PDFs converted to images using pdf2image
+   - Images resized to max 1600px on longest side
+   - PNG optimization with quality=85
+
+3. Gemini Vision AI
+   - Model: gemini-1.5-pro
+   - Timeout: 45 seconds
+   - Temperature: 0.1 (focused output)
+   - Max output tokens: 4096
+
+4. HTML Generation
+   - Clean, semantic HTML
+   - Consistent styling
+   - Mobile-responsive design
+   - Print-friendly layout
+
+## Security Measures
+- Secure filename handling
+- Temporary file cleanup
+- File type validation
+- Size limits enforced
+- Error handling and logging
+
+## API Endpoints
+```
+GET  /          # Main page
+POST /upload    # File upload endpoint
+```
+
+## Development Server
+```
+Host: 127.0.0.1
+Port: 8080
+Debug: True
+```
+
+## Styling Guidelines
+CSS classes for invoice elements:
+```css
+.invoice-container  # Main wrapper
+.invoice-header    # Top section
+.company-info      # Business details
+.invoice-details   # Invoice number, date
+.line-items       # Items table
+.totals-section   # Subtotal, tax, total
+.amount          # Monetary values
+```
+
+## Error Handling
+- Detailed logging with timestamps
+- User-friendly error messages
+- Graceful timeout handling
+- File cleanup on errors
+
+## Performance Optimizations
+- Image resizing and compression
+- Focused AI prompts
+- Efficient file handling
+- Asynchronous processing
+
+## Browser Support
+- Modern browsers (Chrome, Firefox, Safari, Edge)
+- Responsive design for mobile devices
+- Print functionality
+
+## Local Development
+1. Create virtual environment:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Set up environment:
+   - Copy .env.example to .env
+   - Add Gemini API key
+
+4. Run server:
+   ```bash
+   python app.py
+   ```
+
+## Maintenance
+- Regular dependency updates
+- Log rotation
+- Temporary file cleanup
+- API key rotation
+
+## Testing Guidelines
+- Test with various file types
+- Verify image quality
+- Check error handling
+- Validate HTML output
+- Test print functionality
+
+## Deployment Considerations
+- Use production WSGI server
+- Set up proper logging
+- Configure proper file permissions
+- Use environment variables
+- Set up monitoring
