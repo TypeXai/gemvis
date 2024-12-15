@@ -7,6 +7,8 @@ from werkzeug.utils import secure_filename
 import google.generativeai as genai
 from PIL import Image
 from dotenv import load_dotenv
+from flask_cors import CORS
+import time
 
 # Load environment variables
 load_dotenv()
@@ -26,13 +28,34 @@ logger.info("Initialized Gemini model: gemini-1.5-pro")
 
 # Flask app configuration
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+CORS(app, resources={
+    r"/*": {
+        "origins": os.getenv("CORS_ORIGINS", "http://localhost:5000,https://invoice-processor-app.web.app,https://invoice-processor-app.firebaseapp.com").split(","),
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Accept"]
+    }
+})
+
+# Production configuration
+app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', 6 * 1024 * 1024))
+app.config['UPLOAD_FOLDER'] = '/tmp/uploads'  # Use /tmp for Render
+app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
+app.config['DEBUG'] = False
 
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Render"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': time.time(),
+        'env': app.config['ENV'],
+        'cors_origins': app.config['CORS_ORIGINS']
+    })
 
 @app.route('/')
 def index():
